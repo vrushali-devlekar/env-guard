@@ -27,6 +27,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@clack/prompts": "^1.7.0",
     "@inquirer/prompts": "^7.3.2",
     "cli-table3": "^0.6.5",
     "commander": "^13.1.0",
