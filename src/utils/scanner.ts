@@ -56,10 +56,11 @@ export const LEAK_RULES: LeakRule[] = [
     test: (_key, val) => /^ghp_[a-zA-Z0-9]{36}$/.test(val) || /^github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}$/.test(val),
   },
   {
-    name: 'Slack Token',
+    name: 'Slack Bot Token',
     severity: 'CRITICAL',
-    description: 'Slack Bot or User OAuth Access Token detected',
-    test: (_key, val) => /^xox[baprs]-[0-9a-zA-Z]{10,48}$/.test(val),
+    description: 'Live Slack Bot Token detected',
+    test: (_key, val) =>
+      /^xoxb-[0-9]{11,13}-[0-9]{11,13}-[a-zA-Z0-9]{24}$/.test(val),
   },
   {
     name: 'RSA/PEM Private Key',
