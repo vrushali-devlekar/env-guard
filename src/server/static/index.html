@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>env-guard — Environment Security & Management Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --panel-bg: rgba(18, 26, 43, 0.75);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --panel-hover: rgba(30, 42, 68, 0.85);
+      --accent-cyan: #38bdf8;
+      --accent-indigo: #6366f1;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.12) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      background: rgba(9, 13, 22, 0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--panel-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tag {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      outline: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border-color: var(--panel-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-indigo), #4f46e5);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      flex: 1;
+    }
+
+    .workdir-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.25rem;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .workdir-path {
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .stat-icon.cyan { background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); }
+    .stat-icon.rose { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+    .stat-icon.amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+    .stat-icon.emerald { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+
+    .stat-info h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-info .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 0.65rem 1rem 0.65rem 2.6rem;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      color: var(--text-main);
+      font-size: 0.875rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.25rem;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .tab-btn {
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--accent-indigo);
+      color: #fff;
+    }
+
+    /* Table Panel */
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .env-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .env-table th {
+      padding: 1rem 1.25rem;
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .env-table td {
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid var(--panel-border);
+      vertical-align: middle;
+      font-size: 0.875rem;
+    }
+
+    .env-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .env-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .key-name {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .value-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .value-input {
+      width: 100%;
+      padding: 0.5rem 2.2rem 0.5rem 0.75rem;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .value-input:focus {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .toggle-visibility {
+      position: absolute;
+      right: 0.6rem;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .toggle-visibility:hover {
+      color: var(--text-main);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-danger { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    .btn-icon {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 0.4rem;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+      color: var(--accent-rose);
+      background: rgba(244, 63, 94, 0.1);
+    }
+
+    .empty-state {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 0.85rem 1.4rem;
+      border-radius: 10px;
+      background: var(--panel-bg);
+      border: 1px solid var(--accent-emerald);
+      color: var(--accent-emerald);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+    }
+
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <div>
+        <span class="brand-title">env-guard</span>
+        <span class="brand-tag">v1.0.0</span>
+      </div>
+    </a>
+    <div class="nav-actions">
+      <button class="btn btn-secondary" onclick="fetchStatus()">
+        <i class="fa-solid fa-rotate-right"></i> Refresh
+      </button>
+      <button class="btn btn-primary" onclick="saveEnv()">
+        <i class="fa-solid fa-floppy-disk"></i> Save .env
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+    <div class="workdir-banner">
+      <span><i class="fa-solid fa-folder-open"></i> Working Directory:</span>
+      <span class="workdir-path" id="workingDir">Loading...</span>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon cyan"><i class="fa-solid fa-key"></i></div>
+        <div class="stat-info">
+          <h3>Total Keys</h3>
+          <div class="stat-value" id="statTotal">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon rose"><i class="fa-solid fa-circle-exclamation"></i></div>
+        <div class="stat-info">
+          <h3>Missing in .env</h3>
+          <div class="stat-value" id="statMissing">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon amber"><i class="fa-solid fa-lock"></i></div>
+        <div class="stat-info">
+          <h3>Secret Warnings</h3>
+          <div class="stat-value" id="statSecrets">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon emerald"><i class="fa-solid fa-shield-check"></i></div>
+        <div class="stat-info">
+          <h3>Status</h3>
+          <div class="stat-value" id="statStatus">Syncing...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Search variables (e.g. PORT, DATABASE_URL)..." oninput="filterTable()">
+      </div>
+      <div class="filter-tabs">
+        <button class="tab-btn active" onclick="setFilter('all', this)">All</button>
+        <button class="tab-btn" onclick="setFilter('missing', this)">Missing</button>
+        <button class="tab-btn" onclick="setFilter('secrets', this)">Secrets</button>
+      </div>
+      <button class="btn btn-secondary" onclick="addVariable()">
+        <i class="fa-solid fa-plus"></i> Add Variable
+      </button>
+    </div>
+
+    <!-- Main Table -->
+    <div class="panel">
+      <table class="env-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Key Name</th>
+            <th>Value</th>
+            <th>Required</th>
+            <th style="width: 60px; text-align: center;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="envBody">
+          <tr>
+            <td colspan="5" class="empty-state">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              <p>Loading environment variables...</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast">
+    <i class="fa-solid fa-circle-check"></i>
+    <span id="toastMsg">Changes saved successfully!</span>
+  </div>
+
+  <script>
+    let envData = {};
+    let exampleData = {};
+    let currentFilter = 'all';
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        envData = data.env || {};
+        exampleData = data.example || {};
+        document.getElementById('workingDir').innerText = data.workingDir || 'Unknown';
+
+        renderTable();
+      } catch (err) {
+        console.error('Failed to fetch status:', err);
+        showToast('Error loading environment data', 'danger');
+      }
+    }
+
+    function isSecretKey(key) {
+      const secretPatterns = ['SECRET', 'PASSWORD', 'KEY', 'TOKEN', 'PRIVATE', 'DATABASE_URL', 'STRIPE', 'AWS'];
+      return secretPatterns.some(p => key.toUpperCase().includes(p));
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('envBody');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+
+      // Collect all unique keys from example and env
+      const allKeys = Array.from(new Set([...Object.keys(exampleData), ...Object.keys(envData)]));
+
+      let missingCount = 0;
+      let secretCount = 0;
+      let renderedRows = 0;
+
+      tbody.innerHTML = '';
+
+      allKeys.forEach(key => {
+        const inEnv = key in envData;
+        const inExample = key in exampleData;
+        const isSecret = isSecretKey(key);
+
+        const val = inEnv ? (envData[key].value !== undefined ? envData[key].value : envData[key]) : '';
+
+        if (!inEnv && inExample) missingCount++;
+        if (isSecret) secretCount++;
+
+        // Filter checks
+        if (search && !key.toLowerCase().includes(search)) return;
+        if (currentFilter === 'missing' && inEnv) return;
+        if (currentFilter === 'secrets' && !isSecret) return;
+
+        renderedRows++;
+
+        const tr = document.createElement('tr');
+
+        // Status Badge
+        let statusBadge = '';
+        if (!inEnv && inExample) {
+          statusBadge = `<span class="badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Missing</span>`;
+        } else if (inEnv && !inExample) {
+          statusBadge = `<span class="badge badge-warning"><i class="fa-solid fa-circle-info"></i> Extra</span>`;
+        } else {
+          statusBadge = `<span class="badge badge-success"><i class="fa-solid fa-check"></i> Synced</span>`;
+        }
+
+        tr.innerHTML = `
+          <td>${statusBadge}</td>
+          <td>
+            <div class="key-name">
+              ${key}
+              ${isSecret ? '<i class="fa-solid fa-lock" style="color: var(--accent-amber); font-size: 0.75rem;" title="Sensitive Secret Key"></i>' : ''}
+            </div>
+          </td>
+          <td>
+            <div class="value-input-wrapper">
+              <input type="password" class="value-input" value="${escapeHtml(val)}" data-key="${key}" oninput="updateLocalValue('${key}', this.value)">
+              <button class="toggle-visibility" onclick="toggleVisibility(this)" title="Toggle view"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </td>
+          <td>
+            ${inExample ? '<span style="color: var(--accent-cyan); font-weight: 500;">Yes</span>' : '<span style="color: var(--text-dim);">No</span>'}
+          </td>
+          <td style="text-align: center;">
+            <button class="btn-icon" onclick="deleteVariable('${key}')" title="Delete Variable">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      // Stats Update
+      document.getElementById('statTotal').innerText = allKeys.length;
+      document.getElementById('statMissing').innerText = missingCount;
+      document.getElementById('statSecrets').innerText = secretCount;
+      
+      const statusEl = document.getElementById('statStatus');
+      if (missingCount === 0) {
+        statusEl.innerText = 'All Clear';
+        statusEl.style.color = 'var(--accent-emerald)';
+      } else {
+        statusEl.innerText = 'Fix Needed';
+        statusEl.style.color = 'var(--accent-rose)';
+      }
+
+      if (renderedRows === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="empty-state">
+              <i class="fa-solid fa-folder-open"></i>
+              <p>No environment variables found matching filter.</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function toggleVisibility(btn) {
+      const input = btn.previousElementSibling;
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+      }
+    }
+
+    function updateLocalValue(key, val) {
+      if (!envData[key]) {
+        envData[key] = { value: val };
+      } else if (typeof envData[key] === 'object') {
+        envData[key].value = val;
+      } else {
+        envData[key] = val;
+      }
+    }
+
+    function addVariable() {
+      const key = prompt('Enter new environment key (e.g. PORT, API_SECRET):');
+      if (!key) return;
+      const cleanKey = key.trim().toUpperCase();
+      if (!cleanKey) return;
+
+      if (!envData[cleanKey]) {
+        envData[cleanKey] = { value: '' };
+        renderTable();
+      }
+    }
+
+    function deleteVariable(key) {
+      if (confirm(`Remove ${key} from .env?`)) {
+        delete envData[key];
+        renderTable();
+      }
+    }
+
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTable();
+    }
+
+    function filterTable() {
+      renderTable();
+    }
+
+    async function saveEnv() {
+      const payloadKeys = {};
+      Object.keys(envData).forEach(k => {
+        payloadKeys[k] = typeof envData[k] === 'object' ? envData[k].value || '' : envData[k];
+      });
+
+      try {
+        const res = await fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keys: payloadKeys }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message || '.env saved!');
+          fetchStatus();
+        }
+      } catch (err) {
+        console.error('Failed to save:', err);
+        showToast('Error saving .env file', 'danger');
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // Initial load
+    fetchStatus();
+  </script>
+</body>
+</html>
